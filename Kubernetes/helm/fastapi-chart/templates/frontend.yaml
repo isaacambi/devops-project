@@ -1,63 +1,64 @@
+{{- if .Values.deployFrontend }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
-  namespace: app
+  namespace: {{ .Values.namespace }}
+  name: frontend-{{ .Values.namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: frontend
+      app: frontend-{{ .Values.namespace }}
   template:
     metadata:
       labels:
-        app: frontend
+        app: frontend-{{ .Values.namespace }}
     spec:
       containers:
-        - name:  frontend
-          image: 166937434313.dkr.ecr.us-east-1.amazonaws.com/frontend
+        - name: frontend-{{ .Values.namespace }}
+          image: "166937434313.dkr.ecr.us-east-1.amazonaws.com/frontend"
           imagePullPolicy: Always
           ports:
             - containerPort: 5173
           env:
             - name: VITE_API_URL
-              value: "http://app.myakuracy.click"
+              value: "{{ .Values.env.VITE_API_URL }}"
           resources:
             requests:
-              cpu: "250m"
-              memory: "0.5Gi"
+              cpu: "{{ .Values.resources.requests.cpu_frontend }}"
+              memory: "{{ .Values.resources.requests.memory_frontend }}"
             limits:
-              cpu: "500m"
-              memory: "1Gi"
-
-                #imagePullSecrets:
-        #    - name: ecr-credentials
+              cpu: "{{ .Values.resources.limits.cpu_frontend }}"
+              memory: "{{ .Values.resources.limits.memory_frontend }}"
+#          imagePullSecrets:
+#            - name: ecr-credentials
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
-  namespace: app
+  name: frontend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
-    app: frontend
+    app: frontend-{{ .Values.namespace }}
   ports:
     - protocol: TCP
       port: 5173
       targetPort: 5173
   type: ClusterIP
-
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: server-hpa
-  namespace: app
+  name: frontend-{{ .Values.namespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: frontend
-  minReplicas: 1
-  maxReplicas: 2
+    name: frontend-{{ .Values.namespace }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
   targetCPUUtilizationPercentage: 80
+{{- end }}
+
